@@ -1,0 +1,619 @@
+\documentclass[11pt]{article}
+% kate: default-dictionary en_GB;
+% !TeX spellcheck = en_GB
+\addtolength{\oddsidemargin}{-1.7cm}
+\addtolength{\textwidth}{2.8cm} \topmargin -15mm \textheight 230mm
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{hyperref}
+\definecolor{MyDarkBlue}{rgb}{0.15,0.25,0.45}
+\hypersetup{
+    colorlinks=true,
+    citecolor=MyDarkBlue,
+    linkcolor=MyDarkBlue,
+    urlcolor=MyDarkBlue,
+    pdfauthor={Christian S\"amann},
+    pdftitle={Hypatia - Manual},
+    breaklinks=true
+}
+
+\linespread{1.09}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Pseudo-Harvmac Anfang
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\setlength{\footnotesep}{3.5mm}
+
+\makeatletter\renewcommand{\section}{\@startsection
+    {section}{1}{\z@}{-3.5ex plus -1ex minus
+        -.2ex}{2.3ex plus .2ex}{\bf }}
+
+\makeatletter\renewcommand{\subsection}{\@startsection{subsection}{2}{\z@}{-3.25ex
+        plus -1ex minus
+        -.2ex}{1.5ex plus .2ex}{\it }}
+\makeatletter\renewcommand{\subsubsection}{\@startsection{subsubsection}{3}{-2.45ex}{-3.25ex
+        plus -1ex minus -.2ex}{1.5ex plus .2ex}{\it }}
+\renewcommand{\thesection}{\arabic{section}.}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}.}
+\renewcommand{\thesubsubsection}{}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Pseudo-Harvmac Ende
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+
+% Keys, menus and file names
+\newcommand{\key}[1]{\textsf{#1}}
+\newcommand{\menu}[1]{\textsf{\textit{#1}}}
+\newcommand{\file}[1]{\texttt{#1}}
+\newcommand{\cfgdir}{\texttt{\textasciitilde/.config/hypatia}}
+\newcommand{\gt}{\textgreater}
+
+% Verbatim blocks: small, with a light frame
+\DefineVerbatimEnvironment{Code}{Verbatim}{fontsize=\small,frame=leftline,framesep=4mm,xleftmargin=6mm}
+
+\begin{document}
+    \begin{center}
+        {\Huge Hypatia\\[0.5cm] Version 0.1}\\[0.5cm]
+        {\large(w) by Claude Opus 5.5 and Christian S{\"a}mann, available under GPLv3} \vskip 1.5cm
+        \includegraphics[width=8cm]{../src/main/resources/atlantis/hypatia/icons/hypatia-512.png}
+    \end{center}
+    \vspace*{2cm}
+    \begin{quote}\large
+        Hypatia is an open source LaTeX editor written in Java. It offers syntax highlighting, several open files, building with \verb+latexmk+, forward and inverse search with Okular, keyboard-driven insertion of citations and references, spell checking, configurable style checks, text macros and a structure sidebar. Almost everything is configured through plain text files.
+    \end{quote}
+
+
+    \newpage
+
+    \tableofcontents
+
+    \newpage
+
+    \section{Introduction}
+
+    \subsection{Overview}
+
+    Hypatia is a LaTeX editor for Linux (developed on KDE with Okular), written in Java with Swing. Its main features are:
+    \begin{itemize}
+        \itemsep-1mm
+        \item several open files in tabs, each of which can be detached into a window of its own;
+        \item syntax highlighting for LaTeX, line numbers, code folding of environments, soft wrapping with a hanging indent;
+        \item automatic indentation of environments;
+        \item building with a configurable command (by default \verb+latexmk+), with a clickable list of errors and warnings, and a window listing everything in the log (overfull boxes, undefined references, \ldots);
+        \item forward and inverse search with Okular, and a second, independent viewer window;
+        \item popups to insert citations from the project's BibTeX files and references to its labels;
+        \item spell checking with Hunspell dictionaries, aware of LaTeX commands, accents and maths;
+        \item style checks, defined by regular expressions and Java plugins;
+        \item macros, run by a keyboard shortcut or by typing a short character sequence;
+        \item a sidebar with the structure of the whole project;
+        \item a remembered editing position for every file, and a restored session.
+    \end{itemize}
+
+    Hypatia keeps all its settings in the folder \cfgdir{} (more precisely in \verb+$XDG_CONFIG_HOME/hypatia+). Most configuration files are created with commented defaults on first use and can be opened from within Hypatia. Saving such a file in Hypatia applies the changes immediately. An overview of all files is given in section~\ref{sec:files}.
+
+    Four \emph{magic comments} in the first 50 lines of a \file{.tex} file are understood:
+    \begin{Code}
+% !TeX root = main.tex              the main file of the project
+% !TeX spellcheck = en_GB           the spelling language
+% !TeX style = paper                the style used for style checks
+% !TeX bibliography = refs.bib      the BibTeX file(s) searched for citations
+    \end{Code}
+    They are explained in sections~\ref{sec:root}, \ref{sec:spelling}, \ref{sec:style} and~\ref{sec:citations}.
+    Upper and lower case do not matter (\verb+!TEX+ and \verb+!TeX+ both work). For files included by a main file, the spelling language and the style are also taken from the main file.
+
+
+    \subsection{Installation and start}
+
+    \paragraph{Building.}     Hypatia is a Maven project and requires Java 21. In NetBeans, open the project folder with \menu{File > Open Project}; \menu{Clean and Build} produces \file{target/hypatia.jar}, a single runnable JAR file containing all libraries. From the command line, the same is achieved with
+    \begin{Code}
+mvn package
+java -jar target/hypatia.jar
+    \end{Code}
+
+    \paragraph{Installing.}     The script \file{packaging/install.sh} installs Hypatia for the current user (no root rights are needed):
+    \begin{itemize}
+        \itemsep-1mm
+        \item the JAR file goes to \file{\textasciitilde/.local/share/hypatia/hypatia.jar},
+        \item this manual (\file{doc/manual.pdf}, compiled with \verb+latexmk+ if necessary) goes next to it,
+        \item the launcher \verb+hypatia+ goes to \file{\textasciitilde/.local/bin},
+        \item a desktop entry and the icons are installed, so that KDE shows Hypatia with its icon.
+    \end{itemize}
+    Make sure that \file{\textasciitilde/.local/bin} is on your \verb+PATH+, so that Okular can call \verb+hypatia+. Additional options for the Java virtual machine can be given in the environment variable \verb+HYPATIA_JAVA_OPTS+, e.g.\ \verb+-Dsun.java2d.uiScale=2+ for a high-resolution screen.
+
+    \paragraph{Command line.}\label{sec:cmdline}     \begin{Code}
+hypatia [options] [file[:line] ...]
+
+  --line N, -l N     jump to line N in the (last) file
+  --column N, -c N   jump to column N as well
+  +N                 the same as --line N
+  --new-instance     do not hand the files to a running Hypatia
+  --help             show this help
+    \end{Code}
+    Examples:
+    \begin{Code}
+hypatia paper.tex
+hypatia --line 120 chapters/intro.tex
+hypatia chapters/intro.tex:120
+    \end{Code}
+
+    Hypatia runs as a single instance: if it is already running, a second call hands its files and line numbers to the running window (via a socket in \verb+$XDG_RUNTIME_DIR+) and exits immediately. This is what makes inverse search from Okular fast. With \verb+--new-instance+, a separate Hypatia is started instead.
+
+    \paragraph{Session.}     On quitting, Hypatia remembers the open files and the window size and position. They are opened again at the next start (this can be switched off in the settings). Files given on the command line are opened in addition.
+
+
+    \section{Standard functions}
+
+    \subsection{The main window}
+
+    \paragraph{Tabs, toolbar and status bar.}     Each open file is shown in a tab. A dot after the file name marks unsaved changes; the tooltip of a tab shows the full path. Files can also be opened by dropping them onto the window. If a file is changed by another program, Hypatia reloads it automatically when it has no unsaved changes, and asks otherwise.
+
+    The toolbar contains, from left to right: New, Open, Save, Build, View (forward search), Insert citation, Insert reference, Structure sidebar, Find, Build log, Wrap long lines and, on the right, Settings. The tooltips show the current keyboard shortcuts.
+
+    The status bar shows messages on the left and, on the right, the main file of the project, the cursor position, the spelling language (a click on it changes the language of the file, see section~\ref{sec:spelling}) and the encoding of the file. Files are read as UTF-8, or as Latin-1 if they are not valid UTF-8, and saved in the same encoding.
+
+    \paragraph{Appearance.}     Hypatia has a dark and a light theme, chosen in the settings or with \menu{View > Dark Theme}. The editor font and its size are set in the settings; \key{Ctrl+=}, \key{Ctrl+-} and \key{Ctrl+0} make the font larger, smaller or reset it to its default size.
+
+    Long lines are wrapped at the window edge by default; \key{Alt+Z}, \menu{View > Wrap Long Lines} or the toolbar button switch this on and off. Wrapped continuation lines start at the indentation of their line, which keeps indented environments readable.
+
+    \paragraph{Remembered positions.}     For every file, Hypatia remembers the cursor position and the first visible line, and restores both when the file is opened again. Positions are saved when a file is saved or closed, when Hypatia's window loses the focus and on quitting. They are kept for the most recently used 1000 files in \file{positions.properties} in \cfgdir. A line number given on the command line (e.g.\ by Okular) takes precedence.
+
+    \paragraph{Detached editors.}     \key{F12} (\menu{View > Detach Editor / Put Back}) moves the current editor into a window of its own, which can be arranged next to the main window. The detached window has its own find bar, its own structure sidebar and its own style bar, and all keyboard shortcuts pressed there act on its editor. \key{F12} in the detached window, or closing it, puts the editor back into the main window; \key{Ctrl+W} closes the file. Hypatia remembers where the detached window was placed last.
+
+    Note that the KDE drop-down terminal Yakuake uses \key{F12} by default; if it is installed, change one of the two shortcuts.
+
+    \paragraph{Structure sidebar.}     The sidebar on the left of the editor shows the structure of the project as a tree: the headings \verb+\part+, \verb+\chapter+, \verb+\section+, \verb+\subsection+, \verb+\subsubsection+ and \verb+\paragraph+. Starred headings are marked with a \verb+*+, commented-out headings are ignored. The tree always shows the whole project: headings of files included with \verb+\input+, \verb+\include+, \verb+\subfile+ or \verb+\import+ appear where the file is included. For a file without a known main file, Hypatia uses the main file of an open project that includes it.
+
+    A click on a heading, or \key{Enter}, jumps to it and opens its file if necessary; \key{Esc} returns to the editor. While you move through the text, the heading containing the cursor is selected. The tree is updated shortly after you stop typing, when switching files and when saving. \key{Ctrl+Shift+O} or the toolbar button shows and hides the sidebar; its width is remembered.
+
+
+    \subsection{Editing}
+
+    \paragraph{Syntax highlighting and folding.}     Commands, structure commands (\verb+\section+, \verb+\begin+, \ldots), environment names, keys of \verb+\label+, \verb+\ref+ and \verb+\cite+, maths (inline, display and environments like \verb+equation+ or \verb+align+), verbatim environments and comments are highlighted in different colours. Environments spanning several lines can be folded with the small arrows next to the line numbers.
+
+    \paragraph{Matching brackets.}     When an opening brace \verb+{+, bracket \verb+[+ or parenthesis \verb+(+ is right of the cursor, or a closing one left of it, the bracket and its partner are framed. Each kind is matched separately, so that \verb+$[0,1)$+ does not disturb the braces around it. Escaped brackets such as \verb+\{+ and brackets in comments are ignored (unless the cursor is in the comment itself). A brace without partner is framed in red.
+
+    \paragraph{Find and replace.}     \key{Ctrl+F} opens the find bar below the editor and \key{Ctrl+R} the find-and-replace bar. The search starts while you type: the first match after the cursor is selected at once, and from the second character on, all matches are highlighted (at most 5000) and counted. \key{Enter} or \key{F3} goes to the next match, \key{Shift+Enter} or \key{Shift+F3} to the previous one, and \key{Esc} closes the bar. Options are \emph{Match case}, \emph{Whole word} and \emph{Regex} (Java regular expressions). \key{Tab} goes from the find field to the replace field and then to the options. \key{Ctrl+G} jumps to a line, \key{Ctrl+/} comments or uncomments the selected lines.
+
+    \paragraph{Refactoring.}     To rename a label (or any other text) in the whole project, select it and press \key{Win+R} (\menu{Edit > Refactor Selection}). The dialogue shows how often and in which files it occurs, and asks for the new text. The text is replaced in the body of all files of the project: in the main file after \verb+\begin{document}+, in included files everywhere, comments included. Only complete keys are replaced: a match is skipped if a letter, a digit or \verb+_+ comes directly before or after it, or one of \verb+: - . /+ followed by a letter or digit. Renaming \verb+eq:1+ therefore leaves \verb+eq:10+, \verb+eq:1a+ and \verb+sec-eq:1+ alone, but changes \verb+eq:1+ at the end of a sentence. Changed files are opened in tabs and not saved, so that the changes can be reviewed; \key{Ctrl+Z} undoes them file by file. Bibliography files are not changed.
+
+    \paragraph{Indentation.}     Environments are indented automatically by four spaces:
+    \begin{itemize}
+        \itemsep-1mm
+        \item \key{Enter} directly after \verb+\begin{x}+ (possibly with arguments, as in \verb+\begin{tabular}{cc}+) adds the matching \verb+\end{x}+ below, aligned with the \verb+\begin+, and puts the cursor on an indented line between them. This happens only at the end of the line and only if the document has fewer \verb+\end{x}+ than \verb+\begin{x}+, so pressing \key{Enter} after an existing, already closed \verb+\begin{x}+ just opens a new line.
+        \item Otherwise \key{Enter} after a \verb+\begin{...}+ indents the new line by one more level; \key{Enter} between \verb+\begin{x}+ and \verb+\end{x}+ opens an indented line between them.
+        \item Typing the closing brace of \verb+\end{...}+ aligns this line with its \verb+\begin+.
+        \item \key{Tab} with the cursor in a line's indentation, left of where the line should start, moves the cursor there, indenting the line first if it is indented less. On an empty line inside an environment, \key{Tab} thus goes straight to the right column.
+        \item \key{Ctrl+Shift+I} (\menu{Edit > Re-indent Environments}) re-indents the selected lines, or the whole file if nothing is selected.
+    \end{itemize}
+    Otherwise the \key{Tab} key inserts four spaces. \key{Home} moves the cursor to the first non-blank character of the line, that is, behind the indentation; pressing it again moves it to column~1 (and back). In a wrapped line, the first \key{Home} on a continuation row goes to the start of that row. With \key{Shift}, it selects. Verbatim-like environments (\verb+verbatim+, \verb+lstlisting+, \verb+minted+, \verb+comment+, \ldots) are never re-indented. Whether the body of \verb+\begin{document}+ is indented, whether \verb+\end{...}+ is added automatically, and whether automatic indentation is used at all, can be chosen in the settings.
+
+
+    \subsection{Building and viewing}
+
+    \paragraph{The main file.}\label{sec:root}     Building and viewing always work on the \emph{main file} of a project. For the current file, Hypatia determines it as follows:
+    \begin{enumerate}
+        \itemsep-1mm
+        \item a magic comment \verb+% !TeX root = main.tex+ in the first 50 lines (relative to the file's folder);
+        \item the file itself, if it contains a \verb+\documentclass+ (outside comments);
+        \item a main file chosen earlier for this file;
+        \item otherwise, Hypatia asks once (\menu{LaTeX > Set Main File}) and remembers the answer (\menu{LaTeX > Forget Main File} removes it).
+    \end{enumerate}
+
+    \paragraph{Building.}     \key{F5} saves all files and runs the build command in the folder of the main file; \key{F5} during a build stops it. The default command is
+    \begin{Code}
+latexmk -pdf -synctex=1 -interaction=nonstopmode -file-line-error %f
+    \end{Code}
+    It can be changed in the settings (e.g.\ to use \verb+lualatex+). The following placeholders are replaced in the build and viewer commands:\\[2mm]
+    \hspace*{2cm}\begin{tabular}{ll}
+        \verb+%f+ & the main file (e.g.\ \verb+main.tex+)\\
+        \verb+%n+ & the main file without extension\\
+        \verb+%d+ & the folder of the main file\\
+        \verb+%p+ & the PDF file (absolute path)\\
+        \verb+%t+ & the current \verb+.tex+ file (absolute path)\\
+        \verb+%l+, \verb+%c+ & the current line and column\\
+        \verb+%%+ & a percent sign
+    \end{tabular}\\[2mm]
+    Commands are split into words as a shell would split them (quotes group words), but they are run without a shell, so paths containing spaces need no quoting. For pipes and the like, use \verb+sh -c '...'+.
+
+    The output of the build appears in the log panel (\key{F8}). On the left, errors and warnings are listed; a click on one jumps to the corresponding line and shows it in the raw output on the right. Lines with errors are marked in red in the editor. If there were errors, the cursor jumps to the first one in the project's files: to the line, right behind the text \TeX\ had read when it stopped (usually the offending command). This line is shown with a strong red background until you start typing in that file. The log panel shows what the build printed to the console; for a complete list of the last run's errors and warnings, see section~\ref{sec:problems}. After a successful build, Hypatia shows the current position in the PDF viewer (this can be switched off in the settings).
+
+    \paragraph{Single pdfLaTeX and BibTeX runs.}     \key{Shift+F5} (\menu{LaTeX > Run pdfLaTeX}) and \key{Ctrl+F5} (\menu{LaTeX > Run BibTeX}) save all files and run the main file through a single pdf\LaTeX\ or BibTeX run, instead of the full build. The commands are set in the settings (tab \emph{Building}); the defaults are
+    \begin{Code}
+pdflatex -synctex=1 -interaction=nonstopmode -file-line-error %f
+bibtex %n
+    \end{Code}
+    For biblatex, replace the second by \verb+biber %n+. Errors and warnings of a pdf\LaTeX\ run are handled as for the build, including the jump to the first error; after BibTeX, the status bar shows its numbers of errors and warnings, and the output is in the log panel.
+
+    \paragraph{Errors and warnings.}\label{sec:problems}     \key{Shift+F8} (\menu{View > Errors and Warnings}) opens a window with all errors and warnings of the last LaTeX run of the current project. They are read from the \verb+.log+ file of the main file, so they are available also without building in this session, and always describe the last run (unlike the console output of \verb+latexmk+, which contains several runs). Errors and warnings of BibTeX and Biber are read from the \verb+.blg+ file. The entries are sorted into the categories
+    \begin{center}
+        Errors, Undefined references, Undefined citations, Multiply defined labels,\\ Overfull boxes, Underfull boxes, Bibliography and Other warnings,
+    \end{center}
+    each of which can be hidden with its check box; the number of entries is shown next to it. Hypatia follows TeX's record of which file is being read, so warnings in included files are shown with the right file and line. Summary warnings such as ``There were undefined references'' are left out, since the individual warnings are listed.
+
+    A click on an entry, or \key{Enter}, opens its file at its line. For a multiply defined label, Hypatia jumps to its first \verb+\label+. \key{Esc} closes the window. It is updated after every build while it is open; \emph{Refresh} reads the log again, e.g.\ after a build in a terminal.
+
+    \paragraph{Okular: forward and inverse search.}     \emph{Forward search} (\key{F6}, \menu{LaTeX > Show in PDF Viewer}) shows the current line in the PDF. The default viewer command is
+    \begin{Code}
+okular --unique %p#src:%l%t
+    \end{Code}
+    which reuses a running Okular. \key{Shift}+click in the editor does the same for the clicked line, like \key{Shift}+click in Okular does the reverse; Shift+click therefore does not extend the selection (use \key{Shift} with the arrow keys, or drag). \key{Shift+F6} (\menu{LaTeX > Open PDF in New Viewer}) opens the PDF at the current line in a new, independent Okular window, using the command \verb+okular %p#src:%l%t+. Both commands can be changed in the settings. Forward search needs the \verb+.synctex.gz+ file produced by \verb+-synctex=1+.
+
+    For \emph{inverse search}, open \menu{Settings > Configure Okular > Editor} in Okular, choose \menu{Custom Text Editor} and enter
+    \begin{Code}
+hypatia --line %l %f
+    \end{Code}
+    In Okular's browse mode, \key{Shift}+click on the PDF then opens the corresponding line in Hypatia.
+
+
+    \subsection{Citations and references}\label{sec:citations}
+
+    \paragraph{Citations.}     \key{Ctrl+B} (\menu{LaTeX > Insert Citation}) opens a search popup for the BibTeX entries of the project. Hypatia finds the \verb+.bib+ files from \verb+\bibliography{...}+ and \verb+\addbibresource{...}+ in the main file and all files it includes; files not found next to the main file are looked up with \verb+kpsewhich+. If no bibliography is named, all \verb+.bib+ files next to the main file are used.
+
+    When the bibliography is named in a way Hypatia cannot see (for example inside a style file), name it with a magic comment in the first 50 lines of any file of the project:
+    \begin{Code}
+% !TeX bibliography = ../literature/refs.bib
+    \end{Code}
+    The path is relative to the folder of the file containing the comment; \verb+~+ stands for the home folder, and a bare name such as \verb+refs.bib+ that is not found there is looked up with \verb+kpsewhich+. Several such lines name several files. If there is such a comment, only the files it names are searched.
+
+    The words typed into the search field are split at spaces; an entry is shown if every word occurs in its author (or editor) or title field. Upper and lower case, accents and LaTeX markup are ignored, so \verb+schafer+ finds \verb+Sch{\"a}fer+. At most ten entries are shown. On the right, the selected entry is shown as it appears in the \verb+.bib+ file.
+
+    \paragraph{References.}     \key{Ctrl+L} (\menu{LaTeX > Insert Reference}) opens a search popup for all \verb+\label{...}+ in the project. Labels whose key contains all typed words come first, followed by labels whose surroundings contain them. On the right, five lines above and below the label are shown with syntax highlighting.
+
+    \paragraph{Switching to another BibTeX file.}     \menu{LaTeX > Switch BibTeX File} moves a project to another BibTeX file, for example from a file kept for one paper to a central library, whose keys are usually different. If the project uses several \verb+.bib+ files, Hypatia first asks which one to replace; then the new file is chosen in a file dialogue.
+
+    Hypatia then looks up every entry of the old file that is cited in the project in the new file, trying in this order
+    \begin{enumerate}
+        \itemsep-1mm
+        \item the DOI (field \verb+doi+, or a \verb+doi.org+ address in \verb+url+),
+        \item the arXiv number (\verb+eprint+, \verb+arxiv+, or an \verb+arXiv:...+ in \verb+journal+, \verb+note+, \verb+url+, \ldots; the version is ignored),
+        \item title and authors: nearly the same words in the title and at least half of the authors' last names in common (or a similar title, the same authors and the same year).
+    \end{enumerate}
+    The dialogue lists each old key with the proposed new key and how it was found. The entry selected in the list is shown below it, the old entry on the left and the new one on the right. \emph{Replace Current Match} (or \key{Enter}, or a double click) searches the new file for another entry, as for \key{Ctrl+B}; \key{Delete} keeps the old key instead. \emph{Cancel} closes the dialogue without changing anything.
+
+    \emph{OK} replaces the old keys by the new ones in all citation commands of the project (\verb+\cite+, \verb+\citep+, \verb+\parencite+, \verb+\cites+, \verb+\nocite+, \ldots, also within lists such as \verb+\cite{a,b}+), but not in comments. It also points \verb+\bibliography{...}+, \verb+\addbibresource{...}+ and \verb+% !TeX bibliography+ to the new file. The changed files are opened in tabs and not saved, as for refactoring. Keys without a replacement are kept; they need an entry in the new file before the next BibTeX run.
+
+    \paragraph{Keys in the popups and insertion.}     In both popups, \key{Up} and \key{Down} (and \key{Page Up}, \key{Page Down}) select an entry, \key{Enter} inserts it and closes the popup, and \key{Esc} closes it without inserting anything. A double click also inserts.
+
+    Hypatia inserts \verb+\cite{key}+ or \verb+\ref{key}+; for labels in maths environments (\verb+equation+, \verb+align+, \ldots) it inserts \verb+\eqref{key}+. If the cursor is already inside the argument of a citation or reference command (e.g.\ in \verb+\cite{Baez:2004,+ or \verb+\cref{eq:+), only the key is inserted; the part typed after the last comma is used as the initial search and replaced. The inserted commands can be changed with the settings \verb+cite.command+, \verb+ref.command+ and \verb+ref.mathCommand+ in \file{hypatia.properties}.
+
+
+    \section{Spell checking}\label{sec:spelling}
+
+    \subsection{Checking while typing}
+
+    Words not found in the dictionary are underlined with a light red wavy line shortly after you stop typing. The check runs in the background, so typing is not slowed down even in long documents. A right click on such a word offers suggestions, \menu{Add to Dictionary} and \menu{Ignore for Now} (until Hypatia is closed). \menu{View > Check Spelling as You Type} switches the checking on and off.
+
+    Only the document body is checked: everything after \verb+\begin{document}+, or the whole file if there is none (as for an \verb+\input+ file). Not checked are comments, maths (\verb+$...$+, \verb+\(...\)+, \verb+\[...\]+ and maths environments), words in capitals (acronyms), words next to digits and single letters. LaTeX accents are resolved before checking (\verb+Sch\"afer+, \verb+Sch{\"a}fer+, \verb+\'e+, \verb+\v{c}+, \verb+\ss+, \verb+\o+, \ldots), and in German documents also the babel shorthands \verb+"a+, \verb+"s+. A suggestion chosen for a word is written in the same style as the word, so \verb+Sch\"afre+ becomes \verb+Sch\"afer+.
+
+    \subsection{Spellcheck document}
+
+    \key{F7} (\menu{LaTeX > Spellcheck Document}) opens a dialogue that goes through all misspelled words of the current file, starting at the cursor and wrapping around once. For each word, you can \emph{Replace} it by the selected suggestion (or the text in the field \emph{Change to}), \emph{Replace All} its occurrences, \emph{Ignore} this occurrence, \emph{Ignore All} occurrences until Hypatia is closed, or \emph{Add to Dictionary}. \key{Enter} replaces, \key{Up} and \key{Down} choose a suggestion and \key{Esc} closes the dialogue.
+
+    \subsection{Language and dictionaries}
+
+    The spelling language of a file is
+    \begin{enumerate}
+        \itemsep-1mm
+        \item given by \verb+% !TeX spellcheck = en_GB+ (or \verb+de_DE+, \verb+en-US+, \ldots) in the first 50 lines of the file, or else
+        \item by the same line in its main file, or else
+        \item the default language from the settings (initially \verb+en_GB+; it can also be set to none).
+    \end{enumerate}
+    The language is shown in the status bar. A click on it, or \menu{LaTeX > Spelling Language}, writes or changes the magic comment in the current file.
+
+    Hypatia uses Hunspell dictionaries (pairs of files \verb+xx_YY.aff+ and \verb+xx_YY.dic+), which it looks for in
+    \begin{Code}
+~/.config/hypatia/dictionaries
+~/.local/share/hunspell
+/usr/share/hunspell
+/usr/share/myspell  and  /usr/share/myspell/dicts
+/usr/local/share/hunspell
+    \end{Code}
+    On openSUSE, dictionaries are installed e.g.\ with \verb+sudo zypper install myspell-en_GB myspell-de_DE+.
+
+    Words added to the dictionary are stored, one word per line, in the file \file{dictionaries/<language>.txt} in \cfgdir, e.g.\ \file{dictionaries/en\_GB.txt}. The file can be edited with \menu{LaTeX > Edit User Dictionary}; saving it applies the changes. A word added in lower case is also accepted with a capital first letter and in capitals. Lines starting with \verb+#+ are ignored.
+
+    \subsection{The file \file{spellcheck.cfg}}
+
+    Every LaTeX command is ignored together with the arguments directly following it, unless it is listed in \file{spellcheck.cfg} in \cfgdir{} (\menu{LaTeX > Edit Spell-Check Commands}). A listed command is written with its arguments; \verb+...+ marks an argument that is checked, \verb+{}+ or \verb+[]+ an argument that is skipped:
+    \begin{Code}
+\emph{...}              check the argument
+\href{}{...}            check the link text, not the URL
+\section[...]{...}      check the short title (if present) and the title
+\textcolor{}{...}       skip the colour, check the text
+\begin{theorem}[...]    check the optional title of the environment
+    \end{Code}
+    Starred forms such as \verb+\section*+ use the same entry. Arguments after \verb+\begin{name}+ of environments that are not listed (e.g.\ \verb+\begin{tabular}{ccc}+) are skipped; the content of an environment is checked. Two further kinds of lines list environments, separated by spaces:
+    \begin{Code}
+math-environment equation align gather multline
+ignore-environment verbatim lstlisting tikzpicture thebibliography
+    \end{Code}
+    The content of a \verb+math-environment+ is treated as maths: only listed commands such as \verb+\text{...}+ are checked inside it. The content of an \verb+ignore-environment+ is not checked at all. Lines starting with \verb+#+ are comments. The file is created with sensible defaults for the usual text, sectioning and theorem commands.
+
+
+    \section{Style checks}\label{sec:style}
+
+    \subsection{Using style checks}
+
+    A \emph{style} is a set of rules, given by regular expressions and Java plugins. \key{F9} (\menu{Style > Check Style}) checks the current file with its style: the style named by \verb+% !TeX style = name+ in the file or its main file, or else the style called \verb+default+. \menu{Style > Check with Style} runs any other style.
+
+    Problems are underlined with a purple wavy line. When the cursor is on a problem, its explanation is shown in a bar below the editor; it is also shown as a tooltip when the mouse rests on it. Otherwise the bar shows the number of problems. \key{Alt+Page Down} and \key{Alt+Page Up} jump to the next and the previous problem.
+
+    Once a style has been run on a file, the file is checked again after each pause in typing, until \key{Shift+F9} (\menu{Style > Clear Style Marks}, or the cross in the bar) removes all marks.
+
+    \subsection{The styles folder}
+
+    Styles live in the folder \file{styles} in \cfgdir, which is created with examples on first use:
+    \begin{Code}
+styles/
+  styles.cfg       which regexp files and plugins make up each style
+  regexps/         files of regular expressions with explanations
+  plugins/         compiled Java plugins (.class files or .jar files)
+    \end{Code}
+    \menu{Style > Edit Styles}, \menu{Style > Edit Regular Expressions} and \menu{Style > Open Styles Folder} give access to these files. \key{F9} always reloads the styles, regexp files and plugins, so changed or recompiled files take effect immediately; saving \file{styles.cfg} or a regexp file in Hypatia also reloads them. Problems with these files (missing files, invalid regular expressions, plugins that cannot be loaded) are reported in the status bar.
+
+    \subsection{The file \file{styles.cfg}}
+
+    Each style starts with a line \verb+>>STYLE:<name>+ (letters, digits, \verb+_+, \verb+-+ and \verb+.+), followed by one entry per line:\\[2mm]
+    \hspace*{1cm}\begin{tabular}{ll}
+        \verb+regexps/<file>+ & a file of regular expressions in \file{regexps}\\
+        \verb+plugins/<Name>.class+ & a compiled plugin (in a package: \verb+plugins/pkg/Name.class+)\\
+        \verb+plugins/<file>.jar+ & every plugin contained in a jar file\\
+        \verb+include <style>+ & all entries of another style
+    \end{tabular}\\[2mm]
+    The wildcards \verb+*+ and \verb+**+ can be used, e.g.\ \verb+regexps/*+ for all regexp files and \verb+plugins/**+ for all plugins, including those in package folders. Lines starting with \verb+#+ are comments. Example:
+    \begin{Code}
+>>STYLE:default
+regexps/typography.txt
+regexps/latex.txt
+
+>>STYLE:paper
+include default
+regexps/academic.txt
+plugins/LongSentences.class
+    \end{Code}
+
+    \subsection{Regexp files}
+
+    A regexp file consists of rules. A line starting with \verb+>>+ gives an explanation, which applies to the regular expressions on the following lines, one per line, until the next \verb+>>+ line. Lines starting with \verb+#+ and empty lines are ignored. Every match of a regular expression is marked as a problem with the given explanation. Example:
+    \begin{Code}
+# Typographic rules
+>>Repeated word: "$1"
+(?i)\b(\p{L}+)\s+\1\b
+
+>>No space before a punctuation mark
+(?<=\p{L}) +[,;:!?](?=\s)
+
+>>Use a non-breaking space ~ before $1
+(?<=[\p{L})]) (\\(?:ref|eqref|cref|cite)\b)
+    \end{Code}
+    The regular expressions are Java regular expressions\footnote{See \url{https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html}.}; note that a literal backslash is written \verb+\\+. The following rules apply:
+    \begin{itemize}
+        \itemsep-1mm
+        \item \verb+$1+, \verb+$2+, \ldots\ in the explanation are replaced by the corresponding groups of the match;
+        \item \verb+^+ and \verb+$+ match at the beginning and end of lines; \verb+(?i)+ at the start of an expression ignores case;
+        \item only the document body is searched (as for spell checking), and matches that start inside a comment are ignored;
+        \item a regular expression that runs for more than two seconds is stopped and reported.
+    \end{itemize}
+    Hypatia comes with the files \file{typography.txt} (repeated words, spaces before punctuation, three full stops), \file{latex.txt} (non-breaking spaces before references, \verb+\eqref+ for equations, \verb+$$+, spacing after abbreviations) and \file{academic.txt} (contractions, filler words, ``obviously'', sentences starting with a conjunction).
+
+    \subsection{Plugins}
+
+    A plugin is a Java class implementing the interface \verb+atlantis.hypatia.style.StylePlugin+:
+    \begin{Code}
+package atlantis.hypatia.style;
+
+public interface StylePlugin {
+    ArrayList<Problem> checkDocument(String s);
+}
+
+public record Problem(String explanation, int start, int end) {}
+    \end{Code}
+    The method \verb+checkDocument+ receives the whole source of the file, including the preamble and comments, and returns the problems found. \verb+start+ and \verb+end+ are character positions in this string; the text from \verb+start+ (inclusive) to \verb+end+ (exclusive) is marked. The class needs a public constructor without arguments. One instance is created when the style is loaded and reused for every check; it is always called from a background thread, never twice at the same time.
+
+    Plugins are compiled against the installed Hypatia; the option \verb+-d+ puts classes in packages into the correct sub-folders:
+    \begin{Code}
+javac -cp ~/.local/share/hypatia/hypatia.jar \
+      -d ~/.config/hypatia/styles/plugins MyCheck.java
+    \end{Code}
+    The file \file{plugins/LongSentences.java}, created on first use, is a complete example that marks sentences with more than 40 words. Compile it as above and enable it with the line \verb+plugins/LongSentences.class+ in \file{styles.cfg}.
+
+    Plugins cannot disturb the editor: a plugin that throws an exception is reported in the status bar, problems with impossible positions are ignored, and a plugin that takes longer than five seconds is abandoned and switched off until the style is run again (the limit is the setting \verb+style.pluginTimeout+, in milliseconds).
+
+
+    \section{Macros}\label{sec:macros}
+
+    \subsection{The file \file{macros.cfg}}
+
+    Macros are defined in \file{macros.cfg} in \cfgdir{} (\menu{File > Macros}), which is created with examples on first use. Saving it applies the changes immediately. Each macro starts with a header line, followed by its commands, which are run in order. Lines starting with \verb+>>#+ are comments.
+
+    A macro is run either by a keyboard shortcut or by typing a short sequence of characters:\\[2mm]
+    \hspace*{1cm}\begin{tabular}{ll}
+        \verb+>>MACRO:<name>:key+ & run by the shortcut \verb+runmacro.<name>+ in \file{keys.properties}\\
+        \verb+>>MACRO:<name>:text=<chars>+ & run when \verb+<chars>+ is typed quickly
+    \end{tabular}\\[2mm]
+    Names may contain letters, digits, \verb+_+, \verb+-+ and \verb+.+. For each shortcut macro, Hypatia adds an empty entry \verb+runmacro.<name> =+ to \file{keys.properties}, where you set the key (section~\ref{sec:keys}).
+
+    A text trigger such as \verb+text=\\eq+ fires when its characters are typed within one second (the setting \verb+macro.triggerWindow+, in milliseconds). The typed characters are removed first, and the macro runs at their position. Text triggers work in \verb+.tex+, \verb+.ltx+, \verb+.sty+, \verb+.cls+, \verb+.dtx+, \verb+.bib+ and new files, but not in the configuration files; pasted text never triggers a macro. Any sequence of characters can be a trigger, but a trigger that is contained in another one (such as \verb+\\e+ and \verb+\\eq+) makes the longer one unreachable; Hypatia reports such clashes. Starting triggers with \verb+\\+ is a good habit, since this combination hardly occurs before letters in normal LaTeX.
+
+    \subsection{Commands}
+
+    \paragraph{SELECT CURRENT BLOCK.}
+    \verb+>>SELECT CURRENT BLOCK+ selects the lines around the cursor, up to (but excluding) an empty line or a line that is indented less than the line with the cursor. Lines that are indented more are included.
+
+    \paragraph{CLEAR ENVIRONMENT.}
+    \verb+>>CLEAR ENVIRONMENT+ removes the innermost \verb+\begin{...}+ and \verb+\end{...}+ around the selection or the cursor, including arguments directly after \verb+\begin{...}+ such as \verb+[Title]+. The \verb+document+ environment is never removed. Lines that become empty are deleted, while anything else on them (e.g.\ a \verb+\label+) is kept. The former content is de-indented by one level and left selected, so that a following \verb+INSERT LINES+ can wrap it into a new environment.
+
+    \paragraph{INSERT.}
+    \verb+>>INSERT <text>+ inserts the text at the cursor.
+
+    \paragraph{INSERT LINES.}
+    \verb+>>INSERT LINES+ inserts the lines that follow, up to the next line starting with \verb+>>+. The lines are indented like the current line; on an empty line, the indentation is taken from the line above (one level deeper after an open \verb+\begin+). If the cursor is after other text on its line, the first inserted line continues that line. Empty lines at the end are dropped.
+
+    \paragraph{The marker \gt CURSOR\textless.}
+    In \verb+INSERT+ and \verb+INSERT LINES+, the marker \verb+>CURSOR<+ indicates where the cursor is placed afterwards. If text was selected, it is moved to the position of the marker (and re-indented to that line), and the cursor is placed after it. Without the marker, a selection is replaced by the inserted text.
+
+    \paragraph{EXECUTE.}
+    \verb+>>EXECUTE <Class>.<method>+ calls a method of a compiled Java class in the folder \file{macros} in \cfgdir{} (the class name may include its package, as in \verb+>>EXECUTE tools.Stamp.stamp+). The method must be declared as
+    \begin{Code}
+public static void method(javax.swing.text.Document doc, int start, int end)
+    \end{Code}
+    It changes the document \verb+doc+ of the editor directly; \verb+start+ and \verb+end+ are the selection (equal if nothing is selected). It returns nothing. An example that puts the selection in capitals:
+    \begin{Code}
+import javax.swing.text.Document;
+
+public class Upper {
+    public static void upper(Document doc, int start, int end) throws Exception {
+        String s = doc.getText(start, end - start);
+        doc.remove(start, end - start);
+        doc.insertString(start, s.toUpperCase(), null);
+    }
+}
+    \end{Code}
+    Compile it into the folder with \verb+javac -d ~/.config/hypatia/macros Upper.java+ (the option \verb+-d+ creates the sub-folders of a package) and use it with
+    \begin{Code}
+>>MACRO:upper:key
+>>EXECUTE Upper.upper
+    \end{Code}
+    The class is loaded afresh every time the macro runs, so a recompiled class takes effect immediately. Exceptions thrown by the method are reported in the status bar and end the macro. The method runs in the editor's thread, so a method that never returns freezes Hypatia.
+
+    A whole macro is undone with a single \key{Ctrl+Z}.
+
+    \subsection{Examples}
+
+    \begin{Code}
+>># Type \\eq for an equation environment.
+>>MACRO:equation:text=\\eq
+>>INSERT LINES
+\begin{equation}
+    >CURSOR<
+\end{equation}
+
+>># Type \\em for \emph{}: the cursor goes between the braces.
+>>MACRO:emph:text=\\em
+>>INSERT \emph{>CURSOR<}
+
+>># Put the current paragraph into an equation environment.
+>>MACRO:wrap-equation:key
+>>SELECT CURRENT BLOCK
+>>INSERT LINES
+\begin{equation}
+    >CURSOR<
+\end{equation}
+
+>># Turn the environment around the cursor into align.
+>>MACRO:to-align:key
+>>CLEAR ENVIRONMENT
+>>INSERT LINES
+\begin{align}
+    >CURSOR<
+\end{align}
+    \end{Code}
+
+
+    \section{Keyboard shortcuts}\label{sec:keys}
+
+    \subsection{The file \file{keys.properties}}
+
+    All keyboard shortcuts are defined in \file{keys.properties} in \cfgdir{} (\menu{File > Keyboard Shortcuts}). The file is created with all commands and their defaults on first start; commands added in later versions are appended automatically. Saving the file in Hypatia applies the changes immediately. Each line has the form
+    \begin{Code}
+latex.cite = Ctrl+B
+runmacro.wrap-equation = Alt+W
+file.saveAll =
+    \end{Code}
+    \begin{itemize}
+        \itemsep-1mm
+        \item Modifiers are \verb+Ctrl+, \verb+Shift+, \verb+Alt+ and \verb+Meta+; the Windows key can be written \verb+Meta+, \verb+Super+ or \verb+Win+.
+        \item Keys are letters, digits, \verb+F1+ to \verb+F12+, \verb+Enter+, \verb+Space+, \verb+Tab+, \verb+Up+, \verb+Down+, \verb+Left+, \verb+Right+, \verb+Home+, \verb+End+, \verb+Page_Up+, \verb+Page_Down+, \verb+Insert+, \verb+Delete+ and the characters \verb+, . / \ = - ; ' [ ]+ (in this file, a backslash is written \verb+\\+).
+        \item An empty value removes a shortcut. Lines starting with \verb+#+ are comments.
+        \item Shortcuts defined here take precedence over the editor's own keys. Conflicts and keys that cannot be read are reported in the status bar.
+    \end{itemize}
+    KDE reserves some \verb+Meta+ combinations for itself (e.g.\ \verb+Meta+V+ for the clipboard history, \verb+Meta+E+, \verb+Meta+L+, \verb+Meta+D+, \verb+Meta+ with arrows or digits); these never reach Hypatia unless they are freed in \menu{System Settings > Keyboard > Shortcuts}.
+
+    \subsection{Default shortcuts}
+
+    \begin{center}
+    \begin{tabular}{lll}
+        \textbf{Command} & \textbf{Key} & \textbf{Name in keys.properties}\\[1mm]
+        New, Open, Save & \key{Ctrl+N}, \key{Ctrl+O}, \key{Ctrl+S} & \verb+file.new+, \verb+file.open+, \verb+file.save+\\
+        Save as, Save all & \key{Ctrl+Shift+S}, \key{Ctrl+Shift+L} & \verb+file.saveAs+, \verb+file.saveAll+\\
+        Close tab, Quit & \key{Ctrl+W}, \key{Ctrl+Q} & \verb+file.close+, \verb+file.quit+\\
+        Settings & \key{Ctrl+,} & \verb+file.settings+\\
+        Undo, Redo & \key{Ctrl+Z}, \key{Ctrl+Shift+Z} & \verb+edit.undo+, \verb+edit.redo+\\
+        Find, Replace & \key{Ctrl+F}, \key{Ctrl+R} & \verb+edit.find+, \verb+edit.replace+\\
+        Next / previous match & \key{F3}, \key{Shift+F3} & \verb+edit.findNext+, \verb+edit.findPrevious+\\
+        Go to line & \key{Ctrl+G} & \verb+edit.goToLine+\\
+        Re-indent environments & \key{Ctrl+Shift+I} & \verb+edit.reindent+\\
+        Refactor selection & \key{Win+R} & \verb+edit.refactor+\\
+        Comment / uncomment & \key{Ctrl+/} & \verb+edit.toggleComment+\\
+        Wrap long lines & \key{Alt+Z} & \verb+view.wrap+\\
+        Font size & \key{Ctrl+=}, \key{Ctrl+-}, \key{Ctrl+0} & \verb+view.fontLarger+, \ldots\\
+        Build log & \key{F8} & \verb+view.log+\\
+        Errors and warnings & \key{Shift+F8} & \verb+view.problems+\\
+        Structure sidebar & \key{Ctrl+Shift+O} & \verb+view.outline+\\
+        Detach editor / put back & \key{F12} & \verb+view.detach+\\
+        Build (again: stop) & \key{F5} & \verb+latex.build+\\
+        Run pdfLaTeX, BibTeX & \key{Shift+F5}, \key{Ctrl+F5} & \verb+latex.runLatex+, \verb+latex.runBibtex+\\
+        Show in PDF viewer & \key{F6} & \verb+latex.view+\\
+        Open PDF in new viewer & \key{Shift+F6} & \verb+latex.viewNew+\\
+        Insert citation, reference & \key{Ctrl+B}, \key{Ctrl+L} & \verb+latex.cite+, \verb+latex.ref+\\
+        Spellcheck document & \key{F7} & \verb+latex.spellcheck+\\
+        Check style, clear marks & \key{F9}, \key{Shift+F9} & \verb+style.check+, \verb+style.clear+\\
+        Next / previous style problem & \key{Alt+Page Down}, \key{Alt+Page Up} & \verb+style.next+, \verb+style.previous+\\
+        View manual & \key{F1} & \verb+help.manual+
+    \end{tabular}
+    \end{center}
+    Commands without a default key (e.g.\ \verb+view.darkTheme+, \verb+view.spelling+, \verb+latex.setMain+, \verb+style.edit+) are listed in \file{keys.properties} with an empty value.
+
+
+    \section{Configuration files}\label{sec:files}
+
+    \subsection{Overview}
+
+    All files are in \cfgdir:\\[2mm]
+    \hspace*{1cm}\begin{tabular}{ll}
+        \file{hypatia.properties} & settings (section~\ref{sec:settings})\\
+        \file{keys.properties} & keyboard shortcuts (section~\ref{sec:keys})\\
+        \file{macros.cfg} & macros (section~\ref{sec:macros})\\
+        \file{macros/} & compiled Java classes for \verb+>>EXECUTE+ (section~\ref{sec:macros})\\
+        \file{spellcheck.cfg} & which LaTeX arguments are spell-checked (section~\ref{sec:spelling})\\
+        \file{dictionaries/} & user dictionaries \verb+<language>.txt+, and optionally Hunspell dictionaries\\
+        \file{styles/} & styles, regexp files and plugins (section~\ref{sec:style})\\
+        \file{positions.properties} & last editing position of each file (written by Hypatia)
+    \end{tabular}
+
+    \subsection{Settings}\label{sec:settings}
+
+    Most settings are made in the settings dialogue (\key{Ctrl+,}), which has four tabs: \emph{Editor} (theme, editor font and size, wrapping, indentation, session), \emph{Spelling} (checking as you type, default language), \emph{Building} (build command, and the commands for single pdf\LaTeX\ and BibTeX runs) and \emph{Viewer Integration} (the viewer commands for forward search, and the command to enter in Okular for inverse search). They are stored in \file{hypatia.properties}, together with the window positions, the recent files and the main files chosen for files. A few settings are only available in this file:\\[2mm]
+    \hspace*{1cm}\begin{tabular}{lll}
+        \textbf{Setting} & \textbf{Default} & \textbf{Meaning}\\[1mm]
+        \verb+cite.command+ & \verb+\cite+ & command inserted for citations\\
+        \verb+ref.command+ & \verb+\ref+ & command inserted for references\\
+        \verb+ref.mathCommand+ & \verb+\eqref+ & command inserted for labels in maths\\
+        \verb+macro.triggerWindow+ & \verb+1000+ & time (ms) for typing a text trigger\\
+        \verb+style.pluginTimeout+ & \verb+5000+ & time (ms) after which a plugin is abandoned\\
+        \verb+outline.width+ & \verb+240+ & width of the structure sidebar
+    \end{tabular}\\[2mm]
+    Edit \file{hypatia.properties} only while Hypatia is closed, since Hypatia writes it when quitting.
+
+
+    \section{Acknowledgements}
+
+    Libraries used:
+    \begin{itemize}
+        \itemsep-1mm
+        \item RSyntaxTextArea by Robert Futrell (modified BSD licence), the editor component; the class \verb+IndentedWrappedSyntaxView+ is a modified version of its \verb+WrappedSyntaxView+
+        \item FlatLaf by FormDev Software (Apache License 2.0), the look and feel
+        \item Apache Lucene (Apache License 2.0), its Hunspell implementation for spell checking
+        \item the Hunspell dictionaries installed on the system, under their own licences
+    \end{itemize}
+
+
+\end{document}

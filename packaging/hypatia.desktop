@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Hypatia
+GenericName=LaTeX Editor
+Comment=Edit and build LaTeX documents
+Exec=hypatia %F
+Icon=hypatia
+Terminal=false
+StartupNotify=true
+StartupWMClass=hypatia
+Categories=Office;Publishing;TextEditor;Science;
+MimeType=text/x-tex;text/x-bibtex;
+Keywords=latex;tex;editor;
